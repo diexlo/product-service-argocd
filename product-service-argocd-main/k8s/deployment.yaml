@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: product-service
-        image: jouncato/product-service-argo-cd:latest
+        image: diexlo/product-service-argo-cd:latest
         ports:
         - containerPort: 3000
         env:

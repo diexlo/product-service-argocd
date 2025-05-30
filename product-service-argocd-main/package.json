@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jouncato/product-service-argo-cd.git"
+    "url": "https://github.com/diexlo/product-service-argocd.git"
   },
   "keywords": [
     "express",
