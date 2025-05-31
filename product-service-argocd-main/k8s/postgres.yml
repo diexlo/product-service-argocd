@@ -2,7 +2,7 @@ auth:
   postgresPassword: "postgres"
   username: "postgres"
   password: "postgres"
-  database: "products"
+  database: "inventario_db"
 
 primary:
   persistence:

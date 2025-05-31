@@ -39,3 +39,12 @@ revisar los logs de argo cd
 
 kubectl logs -n argocd deployment/argocd-repo-server
 
+
+Instalar postgres en modo cluster
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+helm install postgresql bitnami/postgresql -n default -f k8s/postgres.yml
+
+
+

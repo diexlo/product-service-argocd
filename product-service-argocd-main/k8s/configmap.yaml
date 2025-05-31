@@ -3,6 +3,6 @@ kind: ConfigMap
 metadata:
   name: product-service-config
 data:
-  DB_NAME: "products"
+  DB_NAME: "inventario_db"
   DB_HOST: "postgresql.default.svc.cluster.local"
   DB_PORT: "5432"
