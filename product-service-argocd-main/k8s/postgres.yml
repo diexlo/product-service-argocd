@@ -1,0 +1,14 @@
+auth:
+  postgresPassword: "postgres"
+  username: "postgres"
+  password: "postgres"
+  database: "appdb"
+
+primary:
+  persistence:
+    enabled: true
+    size: 8Gi
+
+service:
+  type: ClusterIP
+  port: 5432
