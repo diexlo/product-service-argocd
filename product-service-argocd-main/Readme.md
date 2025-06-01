@@ -45,7 +45,6 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo update
 
 helm install postgresql bitnami/postgresql -n default -f k8s/postgres.yml
-helm install postgres bitnami/postgresql -f postgres.yml     
 
 
 export POSTGRES_PASSWORD=$(kubectl get secret --namespace default postgres-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
@@ -56,6 +55,9 @@ Y0c5emRHZHlaWE09
 kubectl run postgres-postgresql-client --rm --tty -i --restart="Never" --namespace default --image docker.io/bitnami/postgresql:17.5.0-debian-12-r8 --env="PGPASSWORD=postgres" --command -- psql --host postgres-postgresql -U postgres -d inventario_db -p 5432
 
 ejecutar 
+
+
+kubectl port-forward --namespace default svc/postgresql 6543:5432
 
 /opt/bitnami/scripts/postgresql/entrypoint.sh /bin/bash
 
