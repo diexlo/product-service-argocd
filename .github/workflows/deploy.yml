@@ -36,7 +36,7 @@ jobs:
     name: Deploy to ArgoCD
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: ${{ success() && secrets.ARGOCD_SERVER != '' }}
+    if: success()
 
     steps:
       - name: Install ArgoCD CLI
