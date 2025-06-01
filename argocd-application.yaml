@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/diexlo/product-service-argocd.git
     targetRevision: HEAD
-    path: product-service-argocd-main/k8s
+    path: k8s
   destination:
     server: https://kubernetes.default.svc
     namespace: default
