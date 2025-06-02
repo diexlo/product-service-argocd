@@ -1,76 +1,148 @@
-#ArgoCD#
-docker build -t diexlo/product-service-argo-cd:latest .
+# **Despliegue de Microservicio con ArgoCD y GitHub Actions**
 
-product-service-argo-cd:latest
+Este README comenta brevemente el contenido del repositorio
 
-Publicar imágenes
-docker push diexlo/product-service-argo-cd:latest
+# **Información del repositorio**
 
+* Repositorio en el cual se registran el código, plantillas para desplegar un microservicio con ArgoCD y GitHub Actions.
+* Version 1.0
+* [Repo](https://github.com/diexlo/product-service-argocd)
 
-instalar ArgoCD
+# **Descripción del proyecto**
+* Este proyecto implementa un microservicio REST llamado **Product Service**, diseñado con Node.js, Express y Sequelize, que se despliega automáticamente en un clúster de Kubernetes usando **ArgoCD** y **GitHub Actions**.
 
-helm repo add argo https://argoproj.github.io/argo-helm
+# **Tecnología utilizada**
 
- helm install my-release argo/argocd-apps
+* Node.js + Express – Backend API para productos.
+* Sequelize – ORM para conexión con PostgreSQL.
+* PostgreSQL – Base de datos relacional.
+* Docker – Contenedor para empaquetar la aplicación.
+* Kubernetes – Plataforma de orquestación.
+* ArgoCD – GitOps para despliegue continuo.
 
- ver repositorios 
- helm repo list
+# **Flujo de CI/CD**
 
- crear namespace
- kubectl create namespace argocd
+* Se realiza un push o pull request a la rama main.
+* GitHub Actions construye y sube la imagen a Docker Hub.
+* Si el secreto ARGOCD_SERVER está configurado, se ejecuta el despliegue. El workflow deploy.yml contiene la configuración de ARGOCD_SERVER.
+* ArgoCD sincroniza la aplicación en el clúster.
+* La app queda accesible desde el clúster (por puerto o Ingress).
+* GitHub Actions – Automatización del build y despliegue de contenedores.
 
- kubectl apply -n argocd -f - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+ 
+# **Instrucciones de uso**
+* Clonar el repositorio.
 
-ver pods funcionando 
-kubectl get pods -n argocd -w
+`git clone https://github.com/diexlo/product-service-argocd.git`
 
-Ingresar a la consola de argocd
- kubectl port-forward svc/argocd-server -n argocd 8080:443
+* Construir imágenes y subir al repositorio.
 
-Traer password
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+`docker build -t diexlo/product-service-argo-cd:latest .`
 
-clave de argocd 
-Q3zU8R9-aKy02m2m
-Ajustes
-kubectl get all
+* Publicar imágenes.
 
-revisar los logs de argo cd
+`docker push diexlo/product-service-argo-cd:latest`
 
-kubectl logs -n argocd deployment/argocd-repo-server
+# Configurar ArgoCD
+* Crear namespace
 
+`kubectl create namespace argocd`
 
-Instalar postgres en modo cluster
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
+* Instalar ArgoCD
 
-helm install postgresql bitnami/postgresql -n default -f k8s/postgres.yml
+`helm repo add argo https://argoproj.github.io/argo-helm`
 
+`helm install my-release argo/argocd-apps`
 
-export POSTGRES_PASSWORD=$(kubectl get secret --namespace default postgres-postgresql -o jsonpath="{.data.postgres-password}" | base64 -d)
-cG9zdGdyZXM=
-pass base de datos en base 64
-Y0c5emRHZHlaWE09
+`kubectl apply -n argocd -f - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml`
 
-kubectl run postgres-postgresql-client --rm --tty -i --restart="Never" --namespace default --image docker.io/bitnami/postgresql:17.5.0-debian-12-r8 --env="PGPASSWORD=postgres" --command -- psql --host postgres-postgresql -U postgres -d inventario_db -p 5432
+* verificar pods funcionando 
 
-ejecutar 
+`kubectl get pods -n argocd -w`
 
+* Ingresar a la consola de argocd
 
-kubectl port-forward --namespace default svc/postgresql 6543:5432
+`kubectl port-forward svc/argocd-server -n argocd 8080:443`
+* Acceso a la consola argocd
 
-/opt/bitnami/scripts/postgresql/entrypoint.sh /bin/bash
+`kubectl port-forward svc/product-servic -n default 8090:80`
+* Crear al app en argoCD apuntando a este repositorio
 
-kubectl port-forward --namespace default svc/postgres-postgresql 5432:5432 & PGPASSWORD="postgres" psql --host 127.0.0.1 -U postgres -d inventario_db -p 5432
+`kubectl apply -f argocd-application.yaml`
 
+* Verificar despliegue
 
-instalar ngrok para poder publicar la imagen en argocd en un ambiente local
+`kubectl get pods -n argocd`
 
-Se debe generar el token y ejecutarlo
+`kubectl get svc -n argocd`
 
-ngrok config add-authtoken 2xuyM5mZecYkirTj5eASGKTLYX2_7Yf5LoAXyHKSqQu2Uhg9V
-le publico para github pueda tener acceso
-ngrok http https://localhost:8080 --host-header=rewrite
+# Instalar Postgresql en modo cluster
 
-me devuelve la url q puede tener acceso
+`helm repo add bitnami https://charts.bitnami.com/bitnami`
+
+`helm repo update`
+
+`helm install postgresql bitnami/postgresql -n default -f k8s/postgres.yml`
+
+# Troubleshooting
+* Ver errores de despliegue en ArgoCD
+
+`kubectl get events -n argocd`
+
+`kubectl logs deploy/argocd-server -n argocd`
+
+* Revisar logs de argo CD
+
+`kubectl logs -n argocd deployment/argocd-repo-server`
+
+* Ver logs de la aplicación
+
+`kubectl logs deploy/product-service`
+
+#Acceso a PostgreSQL desde CLI#
+
+`kubectl port-forward svc/postgresql 5432:5432`
+
+`psql -h localhost -U postgres -d inventario_db`
+
+* Creación de base de datos
+
+`CREATE DATABASE inventario_db;`
+
+ * Ver repositorios 
+
+ `helm repo list`
+
+# Instalar ngrok
+* Es necesario instalar ngrok para que permita acceso de github a argoCD en un ambiente local.
+
+Ejecutar el siguiente comando para instalar
+
+`choco install ngrok`
+
+* Posteriomente se debe generar el token y ejecutarlo
+
+`ngrok config add-authtoken 2xuyM5mZecYkirTj5eASGKTLYX2_7Yf5LoAXyHKSqQu2Uhg9V`
+
+* Obtener la url pública asignada por ngrok
+
+`ngrok http https://localhost:8080 --host-header=rewrite`
+* Para este caso devuelve la url que puede tener acceso al dominio desde github
 https://ac32-2800-bf0-6-1027-f567-6873-7c71-7523.ngrok-free.app
+
+
+
+---
+
+## 📐 Arquitectura implementada
+
+```plaintext
++----------------+       GitHub Push        +------------------+       Sync        +----------------------+
+| Desarrollador  |  -------------------->  | GitHub Actions    | ---------------> |     ArgoCD           |
++----------------+                        +------------------+                   +-----------+----------+
+                                                                               |        Kubernetes       |
+                                                                               +---+---------------+-----+
+                                                                                   |               |
+                                                                               +---v--+        +---v--+
+                                                                               | App  |        | Postgres |
+                                                                               +------+        +----------+
