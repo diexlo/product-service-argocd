@@ -1,108 +1,148 @@
-# **Sistema de Seguimiento de Tráfico Aéreo en Tiempo Real Modernizando aplicaciones**
+# **Despliegue de Microservicio con ArgoCD y GitHub Actions**
 
 Este README comenta brevemente el contenido del repositorio
 
 # **Información del repositorio**
 
-* Repositorio en el cual se demuestra cómo integrar el consumo de datos del servicio OpenSky Network con Apache Kafka y escalar dinámicamente los consumidores utilizando KEDA (Kubernetes Event-Driven Autoscaling).
+* Repositorio en el cual se registran el código, plantillas para desplegar un microservicio con ArgoCD y GitHub Actions.
 * Version 1.0
-* [Repo](https://github.com/diexlo/opensky)
-
-# **OpenSky Kafka KEDA**
-
+* [Repo](https://github.com/diexlo/product-service-argocd)
 
 # **Descripción del proyecto**
+* Este proyecto implementa un microservicio REST llamado **Product Service**, diseñado con Node.js, Express y Sequelize, que se despliega automáticamente en un clúster de Kubernetes usando **ArgoCD** y **GitHub Actions**.
 
-* El objetivo principal es consumir datos de tráfico aéreo en tiempo real proporcionados por OpenSky Network, procesarlos a través de Apache Kafka y utilizar KEDA para escalar automáticamente los consumidores de Kafka en función del retraso (lag) del consumidor.
+# **Tecnología utilizada**
 
-# **Arquitectura Implementada**
+* Node.js + Express – Backend API para productos.
+* Sequelize – ORM para conexión con PostgreSQL.
+* PostgreSQL – Base de datos relacional.
+* Docker – Contenedor para empaquetar la aplicación.
+* Kubernetes – Plataforma de orquestación.
+* ArgoCD – GitOps para despliegue continuo.
 
-La arquitectura del proyecto se compone de los siguientes componentes:
+# **Flujo de CI/CD**
 
-* Productor de OpenSky: Una aplicación que se conecta a la API de OpenSky Network y publica datos en un topico de Kafka.
+* Se realiza un push o pull request a la rama main.
+* GitHub Actions construye y sube la imagen a Docker Hub.
+* Si el secreto ARGOCD_SERVER está configurado, se ejecuta el despliegue. El workflow deploy.yml contiene la configuración de ARGOCD_SERVER.
+* ArgoCD sincroniza la aplicación en el clúster.
+* La app queda accesible desde el clúster (por puerto o Ingress).
+* GitHub Actions – Automatización del build y despliegue de contenedores.
 
-* Apache Kafka: Sistema de mensajería que actúa como intermediario entre el productor y los consumidores.
+ 
+# **Instrucciones de uso**
+* Clonar el repositorio.
 
-* Consumidor de Kafka: Aplicación que consume los mensajes del tema de Kafka y realiza el procesamiento necesario.
+`git clone https://github.com/diexlo/product-service-argocd.git`
 
-* KEDA: Herramienta que monitorea el retraso del consumidor en Kafka y escala automáticamente el número de réplicas del consumidor según sea necesario.
+* Construir imágenes y subir al repositorio.
 
-# **Instrucciones de Uso y Verificación**
-# Prerrequisitos
+`docker build -t diexlo/product-service-argo-cd:latest .`
 
-* Cluster de Kubernetes en funcionamiento.
+* Publicar imágenes.
 
-* Herramientas de línea de comandos instaladas: kubectl, helm.
+`docker push diexlo/product-service-argo-cd:latest`
 
-* Despliegue de Kafka
+# Configurar ArgoCD
+* Crear namespace
 
-* Crear un espacio de nombres para Kafka:
+`kubectl create namespace argocd`
 
-`kubectl create namespace kafka`
+* Instalar ArgoCD
 
-* Instalar el operador de Kafka utilizando Helm:
+`helm repo add argo https://argoproj.github.io/argo-helm`
 
-`helm repo add strimzi https://strimzi.io/charts/`
+`helm install my-release argo/argocd-apps`
 
-`helm install strimzi strimzi/strimzi-kafka-operator --version 0.45.0 -n kafka --create-namespace`
+`kubectl apply -n argocd -f - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml`
 
-* Desplegar una instancia de Kafka:
+* verificar pods funcionando 
 
-`kubectl apply -f kafka-cluster.yaml -n kafka`
+`kubectl get pods -n argocd -w`
 
-* Despliegue de KEDA
+* Ingresar a la consola de argocd
 
-Agregar el repositorio de Helm de KEDA:
+`kubectl port-forward svc/argocd-server -n argocd 8080:443`
+* Acceso a la consola argocd
 
-`helm repo add kedacore https://kedacore.github.io/charts`
+`kubectl port-forward svc/product-servic -n default 8090:80`
+* Crear al app en argoCD apuntando a este repositorio
+
+`kubectl apply -f argocd-application.yaml`
+
+* Verificar despliegue
+
+`kubectl get pods -n argocd`
+
+`kubectl get svc -n argocd`
+
+# Instalar Postgresql en modo cluster
+
+`helm repo add bitnami https://charts.bitnami.com/bitnami`
+
 `helm repo update`
 
-* Instalar KEDA en el cluster:
+`helm install postgresql bitnami/postgresql -n default -f k8s/postgres.yml`
 
-`helm install keda kedacore/keda --namespace keda --create-namespace`
+# Troubleshooting
+* Ver errores de despliegue en ArgoCD
 
-* Despliegue del Productor de OpenSky
-Aplicar el manifiesto del productor:
+`kubectl get events -n argocd`
 
-`kubectl apply -f opensky-producer.yaml -n kafka`
+`kubectl logs deploy/argocd-server -n argocd`
 
-* Despliegue del Consumidor de Kafka con KEDA
-Aplicar el manifiesto del consumidor:
+* Revisar logs de argo CD
 
-`kubectl apply -f kafka-consumer.yaml -n kafka`
+`kubectl logs -n argocd deployment/argocd-repo-server`
 
-* Aplicar el objeto ScaledObject de KEDA:
+* Ver logs de la aplicación
 
-`kubectl apply -f kafka-scaledobject.yaml -n kafka`
+`kubectl logs deploy/product-service`
 
-# **Verificación**
-* Verificar que los pods estén en ejecución:
+#Acceso a PostgreSQL desde CLI#
 
-`kubectl get pods -n kafka`
+`kubectl port-forward svc/postgresql 5432:5432`
 
-* Observar los logs del consumidor:
+`psql -h localhost -U postgres -d inventario_db`
 
-`kubectl logs -f deployment/kafka-consumer -n kafka`
+* Creación de base de datos
 
-* Verificar que KEDA esté escalando los consumidores según el retraso:
+`CREATE DATABASE inventario_db;`
 
-`kubectl get hpa -n kafka`
+ * Ver repositorios 
 
-# **Comandos de Solución de Problemas**
+ `helm repo list`
 
-Describir el estado de un pod específico:
+# Instalar ngrok
+* Es necesario instalar ngrok para que permita acceso de github a argoCD en un ambiente local.
 
-`kubectl describe pod <nombre-del-pod> -n kafka`
+Ejecutar el siguiente comando para instalar
 
-Verificar los eventos recientes en el espacio de nombres:
+`choco install ngrok`
 
-`kubectl get events -n kafka`
+* Posteriomente se debe generar el token y ejecutarlo
 
-Reiniciar un pod específico:
+`ngrok config add-authtoken 2xuyM5mZecYkirTj5eASGKTLYX2_7Yf5LoAXyHKSqQu2Uhg9V`
 
-`kubectl delete pod <nombre-del-pod> -n kafka`
+* Obtener la url pública asignada por ngrok
 
-Verificar los logs del operador de KEDA:
+`ngrok http https://localhost:8080 --host-header=rewrite`
+* Para este caso devuelve la url que puede tener acceso al dominio desde github
+https://ac32-2800-bf0-6-1027-f567-6873-7c71-7523.ngrok-free.app
 
-`kubectl logs deployment/keda-operator -n keda`
 
+
+---
+
+## 📐 Arquitectura implementada
+
+```plaintext
++----------------+       GitHub Push        +------------------+       Sync        +----------------------+
+| Desarrollador  |  -------------------->  | GitHub Actions    | ---------------> |     ArgoCD           |
++----------------+                        +------------------+                   +-----------+----------+
+                                                                               |        Kubernetes       |
+                                                                               +---+---------------+-----+
+                                                                                   |               |
+                                                                               +---v--+        +---v--+
+                                                                               | App  |        | Postgres |
+                                                                               +------+        +----------+
